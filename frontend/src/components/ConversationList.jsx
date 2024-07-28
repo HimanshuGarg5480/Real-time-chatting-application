@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { GiHamburgerMenu } from "react-icons/gi";
+import userAtom from "../atom/userAtom.js";
+import { useRecoilState, useSetRecoilState } from "recoil";
+import conversationListAtom from "../atom/conversationListAtom.js";
+import { selectedConversationAtom } from "../atom/selectedConversation.js";
 
 const ConversationList = ({ setIsOpen }) => {
-  const [conversationList, setConversationList] = useState([]);
-  const [userData, setUserData] = useState({});
+  const [conversationList, setConversationList] =
+    useRecoilState(conversationListAtom);
+  const setSelectedConversation = useSetRecoilState(selectedConversationAtom);
+  const [userData, setUserData] = useRecoilState(userAtom);
+
   useEffect(() => {
     async function fetchConversations() {
       const res = await fetch(
@@ -17,13 +24,25 @@ const ConversationList = ({ setIsOpen }) => {
           },
         }
       );
+
       const data = await res.json();
-      console.log(data);
+      // console.log(data.conversations);
       setUserData(data.user);
       setConversationList([...data.conversations]);
     }
+
     fetchConversations();
   }, []);
+
+  const handleSelectedConversation = (conversation) => {
+    setSelectedConversation({
+      conversationId: conversation._id,
+      userId: conversation.participants[0]._id,
+      username: conversation.participants[0].username,
+      userProfilePic: conversation.participants[0].profilePic,
+    });
+  };
+
   return (
     <div className="max-h-screen p-0">
       <div className="relative h-[100vh] w-[340px] shadow-lg bg-white rounded-lg">
@@ -55,27 +74,32 @@ const ConversationList = ({ setIsOpen }) => {
             Chats
           </h3>
           <div className="divide-y divide-gray-200">
-            {conversationList.map((conversations) => {
+            {conversationList?.map((conversations) => {
               return (
-                <button className="w-full text-left py-2 focus:outline-none focus-visible:bg-indigo-50">
+                <div
+                  onClick={() => {
+                    handleSelectedConversation(conversations);
+                  }}
+                  key={conversations._id}
+                  className="w-full text-left py-2 hover:bg-gray-100"
+                >
                   <div className="flex items-center">
                     <img
                       className="rounded-full items-start flex-shrink-0 mr-3"
-                      src="https://res.cloudinary.com/dc6deairt/image/upload/v1638102932/user-32-01_pfck4u.jpg"
+                      src={conversations?.participants[0]?.profilePic}
                       width="32"
                       height="32"
-                      alt="Marie Zulfikar"
                     />
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900">
-                        Marie Zulfikar
+                        {conversations?.participants[0]?.username}
                       </h4>
                       <div className="text-[13px]">
                         The video chat ended · 2hrs
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

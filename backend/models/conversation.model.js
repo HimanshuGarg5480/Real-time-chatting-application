@@ -4,12 +4,15 @@ const conversationSchema = new mongoose.Schema(
   {
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     lastMessage: {
-      text: String,
-      sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      seen: {
-        type: Boolean,
-        default: false,
+      type: {
+        text: String,
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        seen: {
+          type: Boolean,
+          default: false,
+        },
       },
+      default: null,
     },
   },
   { timestamps: true }

@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import debounce from "../utils/debounce.js";
+import { useRecoilState, useSetRecoilState } from "recoil";
+import conversationListAtom from "../atom/conversationListAtom.js";
+import { selectedConversationAtom } from "../atom/selectedConversation.js";
 
 const SearchUser = ({ isOpen, setIsOpen }) => {
+  let [conversationList, setConversationList] =
+    useRecoilState(conversationListAtom);
+  const setSelectedConversation = useSetRecoilState(selectedConversationAtom);
   const [searchedUser, setSearchedUser] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +34,7 @@ const SearchUser = ({ isOpen, setIsOpen }) => {
         }
       );
       const data = await response.json();
-      console.log(data);
+      // console.log(data);
       setFilteredUsers(data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -37,10 +43,38 @@ const SearchUser = ({ isOpen, setIsOpen }) => {
     }
   };
 
-  // Debounce the fetchUsers function
+  const handleMessageClick = async (user) => {
+    const res = await fetch(
+      "http://localhost:8000/api/message/createConversation",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientId:user._id
+        }),
+      }
+    );
+    const data = await res.json();
+    console.log(data,conversationList);
+    conversationList = conversationList.filter((item)=>{
+      return data.conversation._id!=item._id
+    })
+    setConversationList([data.conversation, ...conversationList]);
+    setIsOpen(false);
+    setSelectedConversation({
+      conversationId: data.conversation._id,
+      userId: data.conversation.participants[0]._id,
+      username: user.username,
+      userProfilePic: user.profilePic,
+    });
+  };
+
   const debouncedFetchUsers = useCallback(debounce(fetchUsers, 300), []);
 
-  // Effect to call the debounced fetchUsers whenever searchTerm changes
   useEffect(() => {
     debouncedFetchUsers(searchedUser);
   }, [searchedUser, debouncedFetchUsers]);
@@ -72,7 +106,7 @@ const SearchUser = ({ isOpen, setIsOpen }) => {
           {filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
               <li
-                key={user.id}
+                key={user._id}
                 className="flex justify-between p-2 border-b border-blue-100 hover:bg-blue-50 transition-colors duration-200"
               >
                 <div className="flex items-center gap-4">
@@ -81,7 +115,15 @@ const SearchUser = ({ isOpen, setIsOpen }) => {
                   </div>
                   <div>{user.username}</div>
                 </div>
-                <button className="border-2 rounded-xl px-2 py-1 border-blue-500 bg-blue-100 hover:bg-blue-200 text-blue-950">message</button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleMessageClick(user);
+                  }}
+                  className="border-2 rounded-xl px-2 py-1 border-blue-500 bg-blue-100 hover:bg-blue-200 text-blue-950"
+                >
+                  message
+                </button>
               </li>
             ))
           ) : (
